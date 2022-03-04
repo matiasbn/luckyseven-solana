@@ -1,36 +1,53 @@
-import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
-import { Luckyseven } from "../target/types/luckyseven";
+import * as anchor from '@project-serum/anchor';
+import { BN, Program } from '@project-serum/anchor';
+import { Luckyseven } from '../target/types/luckyseven';
+import { expect } from 'chai';
+import consola from 'consola';
 
-describe("luckyseven", () => {
+describe('luckyseven', () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Luckyseven as Program<Luckyseven>;
   const programStorage = anchor.web3.Keypair.generate();
+  const authorityAccount = anchor.web3.Keypair.generate();
 
-  it("is initialized!", async () => {
-    const tx = await program.rpc.initialize({
+  const randomValue1 = Number((Math.random() * 10000).toFixed(0));
+  const randomValue2 = Number((Math.random() * 10000).toFixed(0));
+  const maxNumber = new BN(Math.max(randomValue1, randomValue2));
+  const targetValue = new BN(Math.min(randomValue1, randomValue2));
+
+  it('is initialized!', async () => {
+    await program.rpc.setAuthority({
+      accounts: {
+        authorityAccount: authorityAccount.publicKey,
+        owner: program.provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [authorityAccount],
+    });
+
+    const tx = await program.rpc.initialize(maxNumber, targetValue, {
       accounts: {
         programStorage: programStorage.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         owner: program.provider.wallet.publicKey,
+        authorityAccount: authorityAccount.publicKey,
       },
       signers: [programStorage],
     });
-    console.log("Your transaction signature", tx);
     await program.provider.connection.confirmTransaction(tx);
-    const { initialized, lastDifference, gameOwner } =
+    const { initialized, winnerDifference, targetNumber } =
       await program.account.programStorage.fetch(programStorage.publicKey);
-    console.log(initialized);
-    console.log(lastDifference.toString());
-    console.log(gameOwner.toBase58());
+    expect(initialized).to.be.true;
+    expect(winnerDifference).to.be.eql(maxNumber);
+    expect(targetNumber).to.be.eql(targetValue);
   });
 
-  it("stores a random number", async () => {
+  it('gets a random number', async () => {
     const randomNumber = anchor.web3.Keypair.generate();
     // Add your test here.
-    const tx = await program.rpc.storeNumber({
+    await program.rpc.getNumber({
       accounts: {
         programStorage: programStorage.publicKey,
         owner: program.provider.wallet.publicKey,
@@ -39,12 +56,17 @@ describe("luckyseven", () => {
       },
       signers: [randomNumber],
     });
-    console.log("Your transaction signature", tx);
 
-    const { owner, number } = await program.account.randomNumber.fetch(
-      randomNumber.publicKey
+    const { number, winner } = await program.account.randomNumber.fetch(
+      randomNumber.publicKey,
     );
-    console.log(owner.toBase58());
-    console.log(number.toString());
+    const { targetNumber, winnerDifference } =
+      await program.account.programStorage.fetch(programStorage.publicKey);
+    const difference = number.sub(targetNumber).abs();
+    expect(difference.toString()).to.be.eq(winnerDifference.toString());
+    consola.info('Random number: ', number.toString());
+    consola.info('Target number:', targetNumber.toString());
+    consola.info('Difference:', difference.toString());
+    consola.info('Is winner?: ', winner);
   });
 });

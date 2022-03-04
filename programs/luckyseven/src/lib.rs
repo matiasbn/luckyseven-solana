@@ -3,38 +3,52 @@ use anchor_lang::solana_program::system_program;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-const MAX_VALUE: i64 = 1234;
-
 #[program]
 pub mod luckyseven {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn set_authority(ctx: Context<SetAuthority>) -> Result<()> {
+        let authority_account: &mut Account<Authority> = &mut ctx.accounts.authority_account;
+        authority_account.authority = ctx.accounts.owner.key();
+        Ok(())
+    }
+
+    pub fn initialize(ctx: Context<Initialize>, max_number: i64, target_number: i64) -> Result<()> {
         let program_storage: &mut Account<ProgramStorage> = &mut ctx.accounts.program_storage;
-        let deployer: &mut Signer = &mut ctx.accounts.owner;
+        // let authority_account: Account<Authority> = *ctx.accounts.authority_account;
+        // let signer: &mut Signer = &mut ctx.accounts.owner;
+        // require!(signer == authority_account.)
         program_storage.initialized = true;
-        program_storage.last_difference = MAX_VALUE;
-        program_storage.game_owner = *deployer.key;
+        program_storage.winner_difference = max_number;
+        program_storage.max_number = max_number;
+        program_storage.target_number = target_number;
 
         Ok(())
     }
 
-    pub fn store_number(ctx: Context<StoreNumber>) -> Result<()> {
+    pub fn get_number(ctx: Context<GetNumber>) -> Result<()> {
         let program_storage: &mut Account<ProgramStorage> = &mut ctx.accounts.program_storage;
         require!(program_storage.initialized, ErrorCode::NotInitializedYet);
         let random_number: &mut Account<RandomNumber> = &mut ctx.accounts.random_number;
         let owner: &Signer = &ctx.accounts.owner;
         let clock: Clock = Clock::get().unwrap();
-        random_number.number = clock.unix_timestamp % MAX_VALUE;
+        random_number.number = clock.unix_timestamp % program_storage.max_number;
         random_number.owner = *owner.key;
+
+        let difference: i64 = (random_number.number - program_storage.target_number).abs();
+        if difference < program_storage.winner_difference {
+            program_storage.winner_difference = difference;
+            random_number.winner = true;
+        }
+
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct Initialize<'info> {
+pub struct SetAuthority<'info> {
     #[account(init, payer = owner)]
-    pub program_storage: Account<'info, ProgramStorage>,
+    pub authority_account: Account<'info, Authority>,
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(address = system_program::ID)]
@@ -43,8 +57,21 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-pub struct StoreNumber<'info> {
-    #[account(init, payer = owner, space = RandomNumber::LEN)]
+pub struct Initialize<'info> {
+    #[account(init, payer = owner)]
+    pub program_storage: Account<'info, ProgramStorage>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account()]
+    pub authority_account: Account<'info, Authority>,
+    #[account(address = system_program::ID)]
+    /// CHECK: this is not unsafe because we check that the account is indeed system_program
+    pub system_program: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct GetNumber<'info> {
+    #[account(init, payer = owner)]
     pub random_number: Account<'info, RandomNumber>,
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -56,6 +83,13 @@ pub struct StoreNumber<'info> {
 }
 
 #[account]
+#[derive(Default)]
+pub struct Authority {
+    pub authority: Pubkey,
+}
+
+#[account]
+#[derive(Default)]
 pub struct RandomNumber {
     pub owner: Pubkey,
     pub number: i64,
@@ -65,17 +99,10 @@ pub struct RandomNumber {
 #[account]
 #[derive(Default)]
 pub struct ProgramStorage {
-    pub last_difference: i64,
+    pub winner_difference: i64,
+    pub target_number: i64,
+    pub max_number: i64,
     pub initialized: bool,
-    pub game_owner: Pubkey,
-}
-
-const DISCRIMINATOR_LENGTH: usize = 8;
-const OWNER_LENGTH: usize = 32;
-const NUMBER_LENGTH: usize = 32;
-
-impl RandomNumber {
-    const LEN: usize = DISCRIMINATOR_LENGTH + OWNER_LENGTH + NUMBER_LENGTH;
 }
 
 #[error_code]
