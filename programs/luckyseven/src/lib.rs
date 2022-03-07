@@ -7,17 +7,17 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod luckyseven {
     use super::*;
 
-    pub fn set_authority(ctx: Context<SetAuthority>) -> Result<()> {
-        let authority_account: &mut Account<Authority> = &mut ctx.accounts.authority_account;
-        authority_account.authority = ctx.accounts.owner.key();
+    pub fn set_program_author(ctx: Context<SetAuthority>) -> Result<()> {
+        let author_account: &mut Account<Authority> = &mut ctx.accounts.author_account;
+        author_account.authority = ctx.accounts.owner.key();
         Ok(())
     }
 
     pub fn initialize(ctx: Context<Initialize>, max_number: i64, target_number: i64) -> Result<()> {
         let program_storage: &mut Account<ProgramStorage> = &mut ctx.accounts.program_storage;
-        // let authority_account: Account<Authority> = *ctx.accounts.authority_account;
+        // let authority_account: &mut Account<Authority> = &mut ctx.accounts.authority_account;
         // let signer: &mut Signer = &mut ctx.accounts.owner;
-        // require!(signer == authority_account.)
+        // require!(signer == ctx.accounts.authority_account)
         program_storage.initialized = true;
         program_storage.winner_difference = max_number;
         program_storage.max_number = max_number;
@@ -48,7 +48,7 @@ pub mod luckyseven {
 #[derive(Accounts)]
 pub struct SetAuthority<'info> {
     #[account(init, payer = owner)]
-    pub authority_account: Account<'info, Authority>,
+    pub author_account: Account<'info, Author>,
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(address = system_program::ID)]
@@ -63,7 +63,7 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account()]
-    pub authority_account: Account<'info, Authority>,
+    pub authority_account: Account<'info, Author>,
     #[account(address = system_program::ID)]
     /// CHECK: this is not unsafe because we check that the account is indeed system_program
     pub system_program: AccountInfo<'info>,
@@ -84,8 +84,8 @@ pub struct GetNumber<'info> {
 
 #[account]
 #[derive(Default)]
-pub struct Authority {
-    pub authority: Pubkey,
+pub struct Author {
+    pub author: Pubkey,
 }
 
 #[account]
