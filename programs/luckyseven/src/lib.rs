@@ -8,8 +8,8 @@ pub mod luckyseven {
     use super::*;
 
     pub fn set_program_author(ctx: Context<SetAuthority>) -> Result<()> {
-        let author_account: &mut Account<Authority> = &mut ctx.accounts.author_account;
-        author_account.authority = ctx.accounts.owner.key();
+        let author_account: &mut Account<Author> = &mut ctx.accounts.author_account;
+        author_account.author = ctx.accounts.owner.key();
         Ok(())
     }
 
