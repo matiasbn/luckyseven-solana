@@ -17,3 +17,10 @@ default = []
 
 [dependencies]
 anchor-lang = "0.22.1"
+rust_decimal = { version = "1.17", features = ["maths"] }
+rust_decimal_macros = "1.17"
+anchor-spl = "0.22.0"
+spl-token = {version = "3.3", features = ["no-entrypoint"]}
+spl-token-metadata = {version = "0.0.1", features = ["no-entrypoint"]}
+spl-associated-token-account = "1.0.3"
+solana-program = "1.9.8"

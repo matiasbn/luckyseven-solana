@@ -1,11 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("FcbmXvb6x3ahEktJMykvfnv2qKPowC1FcqhxD9aUac68");
 
 #[program]
 pub mod luckyseven {
     use super::*;
+    use std::cmp::min;
 
     pub fn set_program_author(ctx: Context<SetAuthority>) -> Result<()> {
         let author_account: &mut Account<Author> = &mut ctx.accounts.author_account;
@@ -43,11 +44,31 @@ pub mod luckyseven {
 
         Ok(())
     }
+
+    pub fn create_mint_authority(ctx: Context<CreateMintAuthority>) -> Result<()> {
+        let (mint_address, mint_bump_seed) = Pubkey::find_program_address(&[br"TokenMint"], &id());
+        let mint_signer_seeds: &[&[_]] = &[br"TokenMint", &[mint_bump_seed]];
+        msg!("asdasdad {}", mint_address);
+        msg!("{}", mint_bump_seed);
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct CreateMintAuthority<'info> {
+    #[account(mut, seeds = [br"TokenMint"] , bump)]
+    /// CHECK: this is not unsafe because we create the account into the function
+    pub token_mint: AccountInfo<'info>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(address = system_program::ID)]
+    /// CHECK: this is not unsafe because we check that the account is indeed system_program
+    pub system_program: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct SetAuthority<'info> {
-    #[account(init, payer = owner)]
+    #[account(init, payer = owner , space = 200)]
     pub author_account: Account<'info, Author>,
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -58,7 +79,7 @@ pub struct SetAuthority<'info> {
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer = owner)]
+    #[account(init, payer = owner, space = 200)]
     pub program_storage: Account<'info, ProgramStorage>,
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -71,7 +92,7 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct GetNumber<'info> {
-    #[account(init, payer = owner)]
+    #[account(init, payer = owner, space = 200)]
     pub random_number: Account<'info, RandomNumber>,
     #[account(mut)]
     pub owner: Signer<'info>,
