@@ -50,7 +50,7 @@ pub mod luckyseven {
         Ok(())
     }
 
-    pub fn create_mint_account(ctx: Context<CreateMintAccount>) -> Result<()> {
+    pub fn create_mint_account(ctx: Context<CreateMintAccount>, initial_supply: u64) -> Result<()> {
         let signer = &ctx.accounts.signer;
         let token_mint = &ctx.accounts.token_mint;
         let rent = &ctx.accounts.rent;
@@ -108,23 +108,23 @@ pub mod luckyseven {
             ],
         )?;
 
-        // msg!("Mint tokens to signer");
-        // solana_program::program::invoke_signed(
-        //     &spl_token::instruction::mint_to(
-        //         &spl_token::id(),
-        //         token_mint.key,
-        //         associated_token_account.key, // Account
-        //         token_mint.key,               // Owner
-        //         &[],
-        //         5000000 * LAMPORTS_PER_SOL,
-        //     )?,
-        //     &[
-        //         token_mint.clone(),
-        //         associated_token_account.to_account_info().clone(),
-        //         token_program.to_account_info().clone(),
-        //     ],
-        //     &[mint_signer_seeds],
-        // )?;
+        msg!("Mint tokens to signer");
+        solana_program::program::invoke_signed(
+            &spl_token::instruction::mint_to(
+                &spl_token::id(),
+                token_mint.key,
+                associated_token_account.key, // Account
+                token_mint.key,               // Owner
+                &[],
+                initial_supply * LAMPORTS_PER_SOL,
+            )?,
+            &[
+                token_mint.clone(),
+                associated_token_account.to_account_info().clone(),
+                token_program.to_account_info().clone(),
+            ],
+            &[mint_signer_seeds],
+        )?;
         Ok(())
     }
 
