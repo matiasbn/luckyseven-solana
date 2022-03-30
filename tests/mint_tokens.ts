@@ -3,7 +3,16 @@ import { BN, Program } from '@project-serum/anchor';
 import { Luckyseven } from '../target/types/luckyseven';
 import { expect } from 'chai';
 import consola from 'consola';
-import { getTokenMintPublicKey } from '../constants';
+import {
+  findAssociatedTokenAddress,
+  getTokenMintPublicKey,
+} from '../constants';
+import { SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 
 describe('Mint tokens', () => {
   // Configure the client to use the local cluster.
@@ -11,30 +20,24 @@ describe('Mint tokens', () => {
 
   const program = anchor.workspace.Luckyseven as Program<Luckyseven>;
 
-  it('should create a mint authority', async () => {
+  it('should create a mint account', async () => {
     const tokenMintPublicKey = await getTokenMintPublicKey();
-    await program.rpc.createMintAuthority({
+    const signer = program.provider.wallet.publicKey;
+
+    const associatedTokenAccount = await findAssociatedTokenAddress(
+      signer,
+      tokenMintPublicKey,
+    );
+    await program.rpc.createMintAccount({
       accounts: {
         tokenMint: tokenMintPublicKey,
-        owner: program.provider.wallet.publicKey,
+        signer: program.provider.wallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenAccount: associatedTokenAccount,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       },
     });
-
-    // const tx = await program.rpc.initialize(maxNumber, targetValue, {
-    //   accounts: {
-    //     programStorage: programStorage.publicKey,
-    //     systemProgram: anchor.web3.SystemProgram.programId,
-    //     owner: program.provider.wallet.publicKey,
-    //     authorityAccount: authorityAccount.publicKey,
-    //   },
-    //   signers: [programStorage],
-    // });
-    // await program.provider.connection.confirmTransaction(tx);
-    // const { initialized, winnerDifference, targetNumber } =
-    //   await program.account.programStorage.fetch(programStorage.publicKey);
-    // expect(initialized).to.be.true;
-    // expect(winnerDifference).to.be.eql(maxNumber);
-    // expect(targetNumber).to.be.eql(targetValue);
   });
 });
