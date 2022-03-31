@@ -6,6 +6,7 @@ use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_program::program_pack::Pack;
 use solana_program::system_instruction;
 use spl_associated_token_account::create_associated_token_account;
+use spl_associated_token_account::get_associated_token_address;
 
 declare_id!("FcbmXvb6x3ahEktJMykvfnv2qKPowC1FcqhxD9aUac68");
 
@@ -142,7 +143,11 @@ pub mod luckyseven {
         Ok(())
     }
 
-    pub fn transfer_tokens(ctx: Context<TransferTokens>, amount: u64) -> Result<()> {
+    pub fn transfer_tokens(
+        ctx: Context<TransferTokens>,
+        amount: u64,
+        initialize_associated_token_account: bool,
+    ) -> Result<()> {
         let signer = &ctx.accounts.signer;
         let token_program = &ctx.accounts.token_program;
         let token_mint = &ctx.accounts.token_mint;
@@ -155,21 +160,23 @@ pub mod luckyseven {
         let (_, mint_seed_bump) = Pubkey::find_program_address(&[br"TokenMint"], &id());
         let mint_signer_seeds: &[&[_]] = &[br"TokenMint", &[mint_seed_bump]];
 
-        msg!("Create token account for destination");
-        solana_program::program::invoke(
-            &create_associated_token_account(signer.key, destination.key, token_mint.key),
-            &[
-                signer.to_account_info().clone(),
-                destination_associated_token_account
-                    .to_account_info()
-                    .clone(),
-                destination.to_account_info().clone(),
-                token_mint.to_account_info().clone(),
-                system_program.to_account_info().clone(),
-                token_program.to_account_info().clone(),
-                rent.to_account_info().clone(),
-            ],
-        )?;
+        if initialize_associated_token_account {
+            msg!("Create associated token account for destination");
+            solana_program::program::invoke(
+                &create_associated_token_account(signer.key, destination.key, token_mint.key),
+                &[
+                    signer.to_account_info().clone(),
+                    destination_associated_token_account
+                        .to_account_info()
+                        .clone(),
+                    destination.to_account_info().clone(),
+                    token_mint.to_account_info().clone(),
+                    system_program.to_account_info().clone(),
+                    token_program.to_account_info().clone(),
+                    rent.to_account_info().clone(),
+                ],
+            )?;
+        }
 
         msg!("Transfer tokens to destination token account");
         solana_program::program::invoke_signed(

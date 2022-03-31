@@ -8,6 +8,7 @@ import {
 import { LAMPORTS_PER_SOL, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
   getMint,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
@@ -63,23 +64,32 @@ describe('Tokens', () => {
   it('should transfer tokens properly', async () => {
     const { publicKey: destination } = anchor.web3.Keypair.generate();
 
-    const destinationAssociatedTokenAccount = await findAssociatedTokenAddress(
-      destination,
+    const destinationAssociatedTokenAccount = await getAssociatedTokenAddress(
       tokenMint,
+      destination,
     );
-    await program.rpc.transferTokens(new BN(initialSupply / 2), {
-      accounts: {
-        signer,
-        destination,
-        tokenMint,
-        destinationAssociatedTokenAccount,
-        signerAssociatedTokenAccount,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        rent: SYSVAR_RENT_PUBKEY,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+
+    const { value } = await connection.getParsedAccountInfo(
+      destinationAssociatedTokenAccount,
+    );
+
+    await program.rpc.transferTokens(
+      new BN(initialSupply / 2),
+      value === null,
+      {
+        accounts: {
+          signer,
+          destination,
+          tokenMint,
+          destinationAssociatedTokenAccount,
+          signerAssociatedTokenAccount,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          rent: SYSVAR_RENT_PUBKEY,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        },
       },
-    });
+    );
 
     const { value: signerBalance } =
       await connection.getParsedTokenAccountsByOwner(signer, {
