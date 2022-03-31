@@ -54,6 +54,6 @@ describe('Mint tokens', () => {
     expect(uiAmount).to.be.eql(initialSupply);
     const mint = await getMint(connection, tokenMint);
     expect(mint.mintAuthority).to.be.null;
-    expect(tokenMint.toBase58()).to.be.eql(mint.address);
+    expect(tokenMint.toBase58()).to.be.eql(mint.address.toBase58());
   });
 });
