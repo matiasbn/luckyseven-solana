@@ -57,7 +57,7 @@ pub mod luckyseven {
         let rent = &ctx.accounts.rent;
         let system_program_info = &ctx.accounts.system_program;
         let token_program = &ctx.accounts.token_program;
-        let associated_token_account = &ctx.accounts.associated_token_account;
+        let signer_associated_token_account = &ctx.accounts.signer_associated_token_account;
 
         let (_, mint_bump_seed) = Pubkey::find_program_address(&[br"TokenMint"], &id());
         let mint_signer_seeds: &[&[_]] = &[br"TokenMint", &[mint_bump_seed]];
@@ -99,7 +99,7 @@ pub mod luckyseven {
             &create_associated_token_account(signer.key, signer.key, token_mint.key),
             &[
                 signer.to_account_info().clone(),
-                associated_token_account.to_account_info().clone(),
+                signer_associated_token_account.to_account_info().clone(),
                 signer.to_account_info().clone(),
                 token_mint.to_account_info().clone(),
                 system_program_info.to_account_info().clone(),
@@ -113,14 +113,14 @@ pub mod luckyseven {
             &spl_token::instruction::mint_to(
                 &spl_token::id(),
                 token_mint.key,
-                associated_token_account.key, // Account
-                token_mint.key,               // Owner
+                signer_associated_token_account.key, // Account
+                token_mint.key,                      // Owner
                 &[],
                 initial_supply * LAMPORTS_PER_SOL,
             )?,
             &[
                 token_mint.clone(),
-                associated_token_account.to_account_info().clone(),
+                signer_associated_token_account.to_account_info().clone(),
                 token_program.to_account_info().clone(),
             ],
             &[mint_signer_seeds],
@@ -142,9 +142,79 @@ pub mod luckyseven {
         Ok(())
     }
 
-    // pub fn mint_tokens(ctx: Context<CreateMintAccount>) -> Result<()> {
-    //     Ok(())
-    // }
+    pub fn transfer_tokens(ctx: Context<TransferTokens>, amount: u64) -> Result<()> {
+        let signer = &ctx.accounts.signer;
+        let token_program = &ctx.accounts.token_program;
+        let token_mint = &ctx.accounts.token_mint;
+        let destination = &ctx.accounts.destination;
+        let destination_associated_token_account =
+            &ctx.accounts.destination_associated_token_account;
+        let signer_associated_token_account = &ctx.accounts.signer_associated_token_account;
+        let system_program = &ctx.accounts.system_program;
+        let rent = &ctx.accounts.rent;
+        let (_, mint_seed_bump) = Pubkey::find_program_address(&[br"TokenMint"], &id());
+        let mint_signer_seeds: &[&[_]] = &[br"TokenMint", &[mint_seed_bump]];
+
+        msg!("Create token account for destination");
+        solana_program::program::invoke(
+            &create_associated_token_account(signer.key, destination.key, token_mint.key),
+            &[
+                signer.to_account_info().clone(),
+                destination_associated_token_account
+                    .to_account_info()
+                    .clone(),
+                destination.to_account_info().clone(),
+                token_mint.to_account_info().clone(),
+                system_program.to_account_info().clone(),
+                token_program.to_account_info().clone(),
+                rent.to_account_info().clone(),
+            ],
+        )?;
+
+        msg!("Transfer tokens to destination token account");
+        solana_program::program::invoke_signed(
+            &spl_token::instruction::transfer(
+                token_program.key,
+                signer_associated_token_account.key,
+                destination_associated_token_account.key,
+                signer.key,
+                &[signer.key],
+                amount * LAMPORTS_PER_SOL,
+            )?,
+            &[
+                signer.to_account_info().clone(),
+                signer_associated_token_account.to_account_info().clone(),
+                destination_associated_token_account
+                    .to_account_info()
+                    .clone(),
+            ],
+            &[mint_signer_seeds],
+        )?;
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct TransferTokens<'info> {
+    #[account(mut, seeds = [br"TokenMint"] , bump)]
+    /// CHECK: this is not unsafe because we create the account into the function
+    pub token_mint: AccountInfo<'info>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    /// CHECK: this is not unsafe because we check that the account is indeed system_programs
+    pub destination: AccountInfo<'info>,
+    #[account(mut)]
+    /// CHECK: this is not unsafe because we check that the account is indeed system_programs
+    pub destination_associated_token_account: AccountInfo<'info>,
+    #[account(mut)]
+    /// CHECK: this is not unsafe because we check that the account is indeed system_programs
+    pub signer_associated_token_account: AccountInfo<'info>,
+    #[account(address = system_program::ID)]
+    /// CHECK: this is not unsafe because we check that the account is indeed system_programs
+    pub system_program: AccountInfo<'info>,
+    pub rent: Sysvar<'info, Rent>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[derive(Accounts)]
@@ -161,22 +231,8 @@ pub struct CreateMintAccount<'info> {
     pub token_program: Program<'info, Token>,
     #[account(mut)]
     /// CHECK: this is not unsafe because we create the account into the function
-    pub associated_token_account: AccountInfo<'info>,
+    pub signer_associated_token_account: AccountInfo<'info>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-}
-
-#[derive(Accounts)]
-pub struct MintTokens<'info> {
-    #[account(mut, seeds = [br"TokenMint"] , bump)]
-    /// CHECK: this is not unsafe because we create the account into the function
-    pub token_mint: AccountInfo<'info>,
-    #[account(mut)]
-    pub signer: Signer<'info>,
-    #[account(address = system_program::ID)]
-    /// CHECK: this is not unsafe because we check that the account is indeed system_programs
-    pub system_program: AccountInfo<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
