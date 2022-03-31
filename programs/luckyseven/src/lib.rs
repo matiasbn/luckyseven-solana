@@ -116,7 +116,7 @@ pub mod luckyseven {
                 signer_associated_token_account.key, // Account
                 token_mint.key,                      // Owner
                 &[],
-                initial_supply * LAMPORTS_PER_SOL,
+                initial_supply,
             )?,
             &[
                 token_mint.clone(),
@@ -179,7 +179,7 @@ pub mod luckyseven {
                 destination_associated_token_account.key,
                 signer.key,
                 &[signer.key],
-                amount * LAMPORTS_PER_SOL,
+                amount,
             )?,
             &[
                 signer.to_account_info().clone(),

@@ -5,7 +5,7 @@ import {
   findAssociatedTokenAddress,
   getTokenMintPublicKey,
 } from '../constants';
-import { SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getMint,
@@ -23,7 +23,7 @@ describe('Tokens', () => {
     wallet: { publicKey: signer },
   } = program.provider;
 
-  const initialSupply = 5_000_000;
+  const initialSupply = 5_000_000 * LAMPORTS_PER_SOL;
   let tokenMint;
   let signerAssociatedTokenAccount;
 
@@ -52,10 +52,9 @@ describe('Tokens', () => {
     });
 
     const {
-      tokenAmount: { uiAmount },
+      tokenAmount: { amount },
     } = value[0].account.data.parsed.info;
-
-    expect(uiAmount).to.be.eql(initialSupply);
+    expect(amount).to.be.eql(initialSupply.toString());
     const mint = await getMint(connection, tokenMint);
     expect(mint.mintAuthority).to.be.null;
     expect(tokenMint.toBase58()).to.be.eql(mint.address.toBase58());
@@ -87,17 +86,17 @@ describe('Tokens', () => {
         mint: tokenMint,
       });
     const {
-      tokenAmount: { uiAmount: signerUiAmount },
+      tokenAmount: { amount: signerUiAmount },
     } = signerBalance[0].account.data.parsed.info;
-    expect(signerUiAmount).to.be.eql(new BN(initialSupply / 2).toNumber());
+    expect(signerUiAmount).to.be.eql(new BN(initialSupply / 2).toString());
 
     const { value: destinationBalance } =
       await connection.getParsedTokenAccountsByOwner(destination, {
         mint: tokenMint,
       });
     const {
-      tokenAmount: { uiAmount: destinationUiAmount },
+      tokenAmount: { amount: destinationUiAmount },
     } = destinationBalance[0].account.data.parsed.info;
-    expect(destinationUiAmount).to.be.eql(new BN(initialSupply / 2).toNumber());
+    expect(destinationUiAmount).to.be.eql(new BN(initialSupply / 2).toString());
   });
 });
