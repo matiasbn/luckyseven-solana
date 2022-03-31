@@ -12,6 +12,7 @@ declare_id!("FcbmXvb6x3ahEktJMykvfnv2qKPowC1FcqhxD9aUac68");
 #[program]
 pub mod luckyseven {
     use super::*;
+    use spl_token::instruction::AuthorityType;
 
     pub fn set_program_author(ctx: Context<SetAuthority>) -> Result<()> {
         let author_account: &mut Account<Author> = &mut ctx.accounts.author_account;
@@ -50,7 +51,7 @@ pub mod luckyseven {
         Ok(())
     }
 
-    pub fn create_mint_account(ctx: Context<CreateMintAccount>, initial_supply: u64) -> Result<()> {
+    pub fn mint_initial_supply(ctx: Context<CreateMintAccount>, initial_supply: u64) -> Result<()> {
         let signer = &ctx.accounts.signer;
         let token_mint = &ctx.accounts.token_mint;
         let rent = &ctx.accounts.rent;
@@ -58,9 +59,8 @@ pub mod luckyseven {
         let token_program = &ctx.accounts.token_program;
         let associated_token_account = &ctx.accounts.associated_token_account;
 
-        let (mint_address, mint_bump_seed) = Pubkey::find_program_address(&[br"TokenMint"], &id());
+        let (_, mint_bump_seed) = Pubkey::find_program_address(&[br"TokenMint"], &id());
         let mint_signer_seeds: &[&[_]] = &[br"TokenMint", &[mint_bump_seed]];
-
         msg!("Create mint account");
         solana_program::program::invoke_signed(
             &system_instruction::create_account(
@@ -125,6 +125,20 @@ pub mod luckyseven {
             ],
             &[mint_signer_seeds],
         )?;
+
+        msg!("Set authority to None to cap the supply");
+        solana_program::program::invoke_signed(
+            &spl_token::instruction::set_authority(
+                &spl_token::id(),
+                token_mint.key,
+                None,
+                AuthorityType::MintTokens,
+                token_mint.key,
+                &[token_mint.key],
+            )?,
+            &[token_mint.to_account_info().clone()],
+            &[mint_signer_seeds],
+        )?;
         Ok(())
     }
 
@@ -159,7 +173,7 @@ pub struct MintTokens<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     #[account(address = system_program::ID)]
-    /// CHECK: this is not unsafe because we check that the account is indeed system_program
+    /// CHECK: this is not unsafe because we check that the account is indeed system_programs
     pub system_program: AccountInfo<'info>,
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,

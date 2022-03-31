@@ -6,6 +6,7 @@ import {
 
 export const LUCKYSEVEN_PUBLIC_KEY =
   'FcbmXvb6x3ahEktJMykvfnv2qKPowC1FcqhxD9aUac68';
+
 export const LUCKYSEVEN_PROGRAM_PUBLICKEY = new PublicKey(
   LUCKYSEVEN_PUBLIC_KEY,
 );

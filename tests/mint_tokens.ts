@@ -8,6 +8,7 @@ import {
 import { SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  getMint,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { expect } from 'chai';
@@ -23,18 +24,18 @@ describe('Mint tokens', () => {
   } = program.provider;
 
   it('should create a mint account and mint initial supply to signer', async () => {
-    const tokenMintPublicKey = await getTokenMintPublicKey();
+    const tokenMint = await getTokenMintPublicKey();
 
     const associatedTokenAccount = await findAssociatedTokenAddress(
       signer,
-      tokenMintPublicKey,
+      tokenMint,
     );
     const initialSupply = 5_000_000;
-    await program.rpc.createMintAccount(new BN(initialSupply), {
+    await program.rpc.mintInitialSupply(new BN(initialSupply), {
       accounts: {
         signer,
         associatedTokenAccount,
-        tokenMint: tokenMintPublicKey,
+        tokenMint,
         systemProgram: anchor.web3.SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -43,7 +44,7 @@ describe('Mint tokens', () => {
     });
 
     const { value } = await connection.getParsedTokenAccountsByOwner(signer, {
-      mint: tokenMintPublicKey,
+      mint: tokenMint,
     });
 
     const {
@@ -51,6 +52,8 @@ describe('Mint tokens', () => {
     } = value[0].account.data.parsed.info;
 
     expect(uiAmount).to.be.eql(initialSupply);
-    // console.log(JSON.parse(value[0].account.data.toString('base64')));
+    const mint = await getMint(connection, tokenMint);
+    expect(mint.mintAuthority).to.be.null;
+    expect(tokenMint.toBase58()).to.be.eql(mint.address);
   });
 });
