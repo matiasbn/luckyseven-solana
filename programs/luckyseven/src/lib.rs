@@ -67,7 +67,7 @@ pub mod luckyseven {
             &system_instruction::create_account(
                 signer.key,
                 &token_mint.key(),
-                1.max(rent.minimum_balance(spl_token::state::Mint::get_packed_len())),
+                1.max(rent.minimum_balance(spl_token::state::Mint::get_packed_len())), // why???
                 spl_token::state::Mint::get_packed_len() as u64,
                 &spl_token::id(),
             ),
@@ -127,7 +127,7 @@ pub mod luckyseven {
             &[mint_signer_seeds],
         )?;
 
-        msg!("Set authority to None to cap the supply");
+        msg!("Set authority to None to fix the max supply");
         solana_program::program::invoke_signed(
             &spl_token::instruction::set_authority(
                 &spl_token::id(),
@@ -141,6 +141,8 @@ pub mod luckyseven {
             &[mint_signer_seeds],
         )?;
         Ok(())
+
+        // lets try changing the authority of the mint PDA
     }
 
     pub fn transfer_tokens(
@@ -199,6 +201,8 @@ pub mod luckyseven {
         )?;
         Ok(())
     }
+
+    // pub fn burns_tokens()
 }
 
 #[derive(Accounts)]

@@ -1,10 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { BN, Program } from '@project-serum/anchor';
 import { Luckyseven } from '../target/types/luckyseven';
-import {
-  findAssociatedTokenAddress,
-  getTokenMintPublicKey,
-} from '../constants';
+import { getTokenMintPublicKey } from '../constants';
 import { LAMPORTS_PER_SOL, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -30,9 +27,9 @@ describe('Tokens', () => {
 
   before(async () => {
     tokenMint = await getTokenMintPublicKey();
-    signerAssociatedTokenAccount = await findAssociatedTokenAddress(
-      signer,
+    signerAssociatedTokenAccount = await getAssociatedTokenAddress(
       tokenMint,
+      signer,
     );
     await program.rpc.mintInitialSupply(new BN(initialSupply), {
       accounts: {
