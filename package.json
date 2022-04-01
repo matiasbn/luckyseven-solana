@@ -17,13 +17,15 @@
     },
     "scripts": {
         "test": "anchor test",
-        "test:mint-tokens": "anchor test tests/mint_tokens.ts",
+        "test:skip-local-validator": "anchor test --skip-local-validator",
         "build": "anchor build",
         "deploy": "anchor deploy",
         "solana-test-validator": "solana-test-validator",
+        "solana-logs": "solana logs",
         "release:patch": "standard-version --release-as patch",
         "release:minor": "standard-version --release-as minor",
         "release:major": "standard-version --release-as major"
     },
-    "version": "1.0.1"
+    "version": "1.0.1",
+    "license": "MIT"
 }
