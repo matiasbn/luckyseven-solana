@@ -1,6 +1,8 @@
 {
     "dependencies": {
         "@project-serum/anchor": "^0.22.1",
+        "@solana/spl-token": "^0.2.0",
+        "@solana/web3.js": "^1.37.0",
         "consola": "^2.15.3"
     },
     "devDependencies": {
@@ -15,11 +17,15 @@
     },
     "scripts": {
         "test": "anchor test",
+        "test:skip-local-validator": "anchor test --skip-local-validator",
         "build": "anchor build",
         "deploy": "anchor deploy",
+        "solana-test-validator": "solana-test-validator",
+        "solana-logs": "solana logs",
         "release:patch": "standard-version --release-as patch",
         "release:minor": "standard-version --release-as minor",
         "release:major": "standard-version --release-as major"
     },
-    "version": "1.0.1"
+    "version": "1.1.0",
+    "license": "MIT"
 }

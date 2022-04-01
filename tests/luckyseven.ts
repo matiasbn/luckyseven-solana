@@ -18,9 +18,9 @@ describe('luckyseven', () => {
   const targetValue = new BN(Math.min(randomValue1, randomValue2));
 
   it('is initialized!', async () => {
-    await program.rpc.setAuthority({
+    await program.rpc.setProgramAuthor({
       accounts: {
-        authorityAccount: authorityAccount.publicKey,
+        authorAccount: authorityAccount.publicKey,
         owner: program.provider.wallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
